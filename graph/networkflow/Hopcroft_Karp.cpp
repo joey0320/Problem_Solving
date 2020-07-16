@@ -1,73 +1,83 @@
-struct Hopcroft_Karp{
+// version 2
+// unmatched path : A - B
+// matched path : A = B
+// alternating path : A - B = A - B = A
+// augmenting path : A - B = A - B
+
+struct HopcroftKarp {
 	int n, m;
-	vector<int> A, B, level;
-	vector<bool> matched;
-	vector<vector<int>> graph;
+	vector<vector<int>> graph; 
+	vector<int> matchA, matchB;
+	vector<int> level, start;
 
-	Hopcroft_Karp(int n, int m) : n(n), m(m) {
-		A.assign(n + 1, -1);
-		B.assign(m + 1, -1);
-		level.assign(n  + 1, -1);
-		matched.assign(n + 1, false);
-		graph.resize(n + 1);
+	void init ( int a, int b ) {
+		n = a;
+		m = b;
+		graph.resize(n);
+		matchA.assign(n, -1);
+		matchB.assign(m, -1);
 	}
 
-	void addedge(int u, int v){
-		graph[u].pb(v);
+	void addedge ( int u, int v ) {
+		graph[u].push_back(v);
 	}
 
-	void assign_level(){
-
+	bool assignLevel () {
+		memset(&level[0], -1, sizeof(level[0]) * level.size());
+		
 		queue<int> q;
+		bool reachable = false;
 
-		for(int i = 1; i <= n; i++){
-			if(!matched[i]){
+		for ( int i = 0; i < n; i++ ) {
+			if ( matchA[i] == - 1 ) {
 				level[i] = 0;
 				q.push(i);
 			}
-			else level[i] = INF;
 		}
 
-		while(!q.empty()){
-			int here = q.front();
+		while ( !q.empty() ) {
+			int u = q.front();
 			q.pop();
-
-			for(auto there : graph[here]){
-				if(B[there] != -1 && level[B[there]] == INF){
-					//이미 match 되어있고 level이 assign 되지 않음
-					level[B[there]] = level[here] + 1;
-					q.push(B[there]);
+			for ( auto v : graph[u] ) {
+				int w = matchB[v];
+				if ( w == - 1) {
+					reachable = true; // if there is a node in B that is not yet matched
+				}
+				else if ( level[w] == - 1 ) { // A - B = A 
+					level[w] = level[u] + 1;
+					q.push(w);
 				}
 			}
 		}
+		return reachable;
 	}
 
-	bool find_path(int here){
-		for(auto there : graph[here]){
-			if( B[there] == -1 || (level[B[there]] == level[here] + 1) && find_path( B[there] ) ){
-				//there이 matching이 아직 안되었거나
-				//level 차이가 1인 B[there]에서 새로운 matching을 찾을 수 있으면
-				matched[here] = true;
-				A[here] = there;
-				B[there] = here;
-				return true;
+	int augmentpath ( int u ) {
+		for ( int& i = start[u] ; i < (int) graph[u].size(); i++) {
+			int v = graph[u][i];
+			int w = matchB[v];
+			if ( w != -1 && level[w] != level[u] + 1 ) continue; // cannot be A - B = A 
+			if ( w == -1 || augmentpath(w) ) {
+				// w = - 1: end of aug path
+				// or find augment path recursively  ( A - B = A - B = A ) + ( A - B )
+				matchA[u] = v;
+				matchB[v] = u;
+				return 1;
 			}
 		}
-		return false;
+		return 0;
 	}
 
-	int bipartite_match(){
-		int ret = 0;
-		while(true){
-			assign_level();
-
-			int aug = 0;
-			for(int i = 1; i <= n; i++) if( !matched[i] && find_path(i)) aug++;
-
-			if(!aug) break;
-
-			ret += aug;
+	int solve () {
+		level.resize(n);
+		start.resize(m);
+		int maxmatching = 0;
+		while ( assignLevel() ) {
+			memset( &start[0], 0, sizeof(start[0]) * start.size() );
+			for ( int i = 0; i < n; i++ ) {
+				if ( matchA[i] == - 1) maxmatching += augmentpath(i);
+			}
 		}
-		return ret;
+		return maxmatching;
 	}
 };
