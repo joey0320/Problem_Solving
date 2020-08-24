@@ -1,18 +1,25 @@
   
 //https://github.com/KwanghyunOn/Competitive-Programming/blob/master/String/Aho-Corasick.cpp 온광현 블로그 
 const int alphabet = 26;
+
 int chartoint(const char c){
     return c-'a';
 }
+
 struct node{
+
     node* next[alphabet];
     node* f; node* o;
     bool isend;
+  	int cnt;
+
     node(){
         f = NULL, o = NULL;
         isend = false;
+        cnt = 0;
         for(int i=0; i<alphabet; i++) next[i]=NULL;
     }
+
     ~ node(){for(int i=0; i<alphabet; i++) if(next[i]) delete next[i]; }
     // void insert(const char *key) {
     //     if (*key == '\0') isend = true;
@@ -23,7 +30,9 @@ struct node{
     //     }
     // }
 };
+
 node* root = new node();
+
 void insert(string &s){
     auto cur = root;
     for(auto c: s){
@@ -33,6 +42,7 @@ void insert(string &s){
     }
     cur->isend = true;
 }
+
 void buildtree(){
     queue<node*> q;
     for(int i = 0; i<alphabet; i++){
@@ -54,13 +64,31 @@ void buildtree(){
         }
     }
 }
+
+
 bool search(string& s){
     auto u = root;
     for(auto c: s){
         int idx = chartoint(c);
         while(u!=root && !u->next[idx]) u = u->f;
         if(u->next[idx]) u = u->next[idx];
-        if(u->o) return true;
+        if(u->o) u->o->cnt++;
     }
-    return false;
+    
+    vector<node*> v;
+    queue<node*> q;
+
+    q.push(root);
+    while ( !q.empty() ) {
+    	node *u = q.front();
+    	q.pop();
+
+    	for ( int i = 0; i < alphabet; i++ ) if ( u->next[i] ) {
+    		v.push_back(u->nxt[i]);
+    		q.push(u->nxt[i]);
+    	}
+    }
+    reverse(v.begin(), v.end());
+    for ( auto t : v )
+    	if ( t->isend && t->f->o ) t->f->o->cnt += t->cnt;
 }
